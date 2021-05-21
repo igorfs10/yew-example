@@ -48,13 +48,17 @@ impl Component for Home {
 
     fn view(&self) -> Html {
         html! {
-            <>
-                <div style={self.props.visibility}>
-                    <button onclick=self.link.callback(|_| Colors::Green)>{ "Verde" }</button>
-                    <button onclick=self.link.callback(|_| Colors::Blue)>{ "Azul" }</button>
-                    <p style={self.color}>{"Olá mundo"}</p>
+            <div class="columns" style={self.props.visibility}>
+                <div class="column m-3">
+                    <div class="buttons">
+                        <button class="button is-success" onclick=self.link.callback(|_| Colors::Green)>{ "Verde" }</button>
+                        <button class="button is-info" onclick=self.link.callback(|_| Colors::Blue)>{ "Azul" }</button>
+                    </div>
+                    <div class="block">
+                        <p style={self.color}>{"Olá mundo"}</p>
+                    </div>
                 </div>
-            </>
+            </div>
         }
     }
 }

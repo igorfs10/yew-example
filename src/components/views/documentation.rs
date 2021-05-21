@@ -34,11 +34,13 @@ impl Component for Documentation {
 
     fn view(&self) -> Html {
         html! {
-            <>
-                <div style={self.props.visibility}>
-                    <p>{"Heloo"}</p>
+            <div class="columns" style={self.props.visibility}>
+                <div class="column m-3">
+                    <div class="block">
+                        <p>{"Heloo"}</p>
+                    </div>
                 </div>
-            </>
+            </div>
         }
     }
 }
