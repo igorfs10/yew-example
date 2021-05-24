@@ -1,4 +1,5 @@
 pub mod components;
+pub mod reqs;
 
 use components::main::Main;
 use wasm_bindgen::prelude::*;
