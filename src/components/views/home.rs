@@ -1,12 +1,17 @@
-use crate::reqs::*;
 use crate::{reqs::Pokemon, HTML_VISIBLE};
+use wasm_bindgen::JsCast;
+use yew::format::{Json, Nothing};
+use yew::services::fetch::{FetchTask, Request, Response};
+use yew::services::FetchService;
+use yew::web_sys::{window, Document, HtmlInputElement, Window};
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
 pub struct Home {
     link: ComponentLink<Self>,
     props: HomeProps,
-    color: &'static str,
-    name: String,
+    selected_pokemon: Pokemon,
+    id: String,
+    fetch_task: Option<FetchTask>,
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -15,39 +20,61 @@ pub struct HomeProps {
     pub visibility: &'static str,
 }
 
-pub enum Colors {
-    Green,
-    Blue,
+pub enum Msg {
     Click,
-    Test(Box<Option<Pokemon>>),
+    ReceiveResponse(Box<Result<Pokemon, anyhow::Error>>),
 }
 
 impl Component for Home {
-    type Message = Colors;
+    type Message = Msg;
     type Properties = HomeProps;
+
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link,
             props,
-            color: "color: rgb(0, 0, 0)",
-            name: "TEST".to_string(),
+            selected_pokemon: Pokemon::default(),
+            id: "1".to_string(),
+            fetch_task: None,
         }
     }
 
     fn update(&mut self, color: Self::Message) -> ShouldRender {
         match color {
-            Colors::Green => self.color = "color: rgb(0, 255, 0);",
-            Colors::Blue => self.color = "color: rgb(0, 0, 255);",
-            Colors::Click => {
-                wasm_bindgen_futures::spawn_local(wrap(
-                    get("https://igorfs10.github.io/PokemonSite/api/1/".to_string()),
-                    self.link.callback(|e| Colors::Test(Box::new(e))),
-                ));
+            Msg::Click => {
+                let window: Window = window().unwrap();
+                let document: Document = window.document().unwrap();
+                let input_id_pokemon: HtmlInputElement = document
+                    .get_element_by_id("input_id_pokemon")
+                    .unwrap()
+                    .dyn_into::<HtmlInputElement>()
+                    .unwrap();
+                self.id = input_id_pokemon.value();
+                let url_get = format!(
+                    "https://igorfs10.github.io/PokemonSite/api/{}/",
+                    input_id_pokemon.value()
+                );
+                let request = Request::get(&url_get)
+                    .body(Nothing)
+                    .expect("Could not build request.");
+
+                let callback = self.link.callback(
+                    |response: Response<Json<Result<Pokemon, anyhow::Error>>>| {
+                        let Json(data) = response.into_body();
+                        Msg::ReceiveResponse(Box::new(data))
+                    },
+                );
+
+                let task = FetchService::fetch(request, callback).expect("failed to start request");
+                self.fetch_task = Some(task);
             }
-            Colors::Test(poke) => match *poke {
-                Some(pokemon) => self.name = pokemon.name,
-                None => self.name = "None".to_string(),
-            },
+            Msg::ReceiveResponse(poke) => {
+                match *poke {
+                    Ok(pokemon) => self.selected_pokemon = pokemon,
+                    Err(_) => self.selected_pokemon = Pokemon::default(),
+                }
+                self.fetch_task = None;
+            }
         }
         true
     }
@@ -66,12 +93,13 @@ impl Component for Home {
             <div class="columns" style={self.props.visibility}>
                 <div class="column m-3">
                     <div class="buttons">
-                        <button class="button is-success" onclick=self.link.callback(|_| Colors::Green)>{ "Verde" }</button>
-                        <button class="button is-info" onclick=self.link.callback(|_| Colors::Blue)>{ "Azul" }</button>
-                        <button class="button is-info" onclick=self.link.callback(|_| Colors::Click)>{ "Teste" }</button>
+                        <button class="button is-info">{ "Teste" }</button>
                     </div>
                     <div class="block">
-                        <p style={self.color}>{self.name.clone()}</p>
+                        <input type="number" min="1" max="300" oninput=self.link.callback(|_| Msg::Click) id="input_id_pokemon" value=self.id.clone()/>
+                    </div>
+                    <div class="block">
+                        <p>{self.selected_pokemon.name.clone()}</p>
                     </div>
                 </div>
             </div>
